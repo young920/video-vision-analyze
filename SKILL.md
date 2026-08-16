@@ -32,6 +32,29 @@ Use this skill whenever you need the model to:
 - Pure pixel-level diff/quantification → use PIL/numpy directly (precise, no API cost)
 - Bulk OCR of many frames → use OCR helper in batch (each call is ~1s vs vision ~30s + token cost)
 
+## 视觉验证四层决策图
+
+```mermaid
+flowchart TD
+    Q[有视觉疑问?] --> S1[第1层: macOS OCR<br/>文字内容 = ground truth<br/>~1秒/帧 · 免费]
+    S1 -->|文字够了?| A1[直接下结论]
+    S1 -->|不够 · 需要颜色/形状/布局| S2[第2层: 像素diff + 颜色掩码<br/>数值精确 · 无幻觉<br/>PIL/numpy]
+    S2 -->|像素级能验证?| A2[量化结论]
+    S2 -->|需要语义理解/整体判断| S3[第3层: Vision API<br/>k3 → kimi → doubao → MiniMax<br/>多model fallback]
+    S3 -->|vision 说的合理?| S4[第4层: 用户观察确认<br/>截图+坐标让用户自己看]
+    S3 -->|vision 说的离谱?| S1
+    S4 -->|用户确认| A3[最终结论]
+    S4 -->|用户否定| S1
+
+    style S1 fill:#e8f8e8,stroke:#4caf50
+    style S2 fill:#fff4e6,stroke:#e8a33d
+    style S3 fill:#fde8e8,stroke:#e74c3c
+    style S4 fill:#e8f4fd,stroke:#4a90d9
+```
+
+**法则**：下层能解决就不要往上走。vision 是第 3 层辅助，不是第 1 层答案。
+vision 说的每一个结论，都必须能用 OCR 或像素 diff 交叉验证 —— 验证不了的 = 幻觉嫌疑。
+
 ## How to call
 
 Use the bundled helper script `scripts/vision_helper.py`:
